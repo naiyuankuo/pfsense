@@ -1,83 +1,62 @@
-# 實作報告：pfSense 與 Wazuh 之邊界聯防與 AI 自動化回應系統
+# 實作報告：pfSense 與 Wazuh 自動防禦系統整合
 
 ## 1. 專案背景
-傳統的資安防護中，防火牆（如 pfSense）負責攔截，而 SIEM（如 Wazuh）負責記錄，兩者之間往往缺乏即時聯動。本實作成功打破資訊孤島，構建了一套 **「邊界感知 (Perception) -> 中心決策 (Decision) -> 全域響應 (Response)」** 的閉環體系。透過部署 Wazuh Agent 於 pfSense 核心，實現了從「被動防禦」向「主動反擊」的轉型。
+傳統的防火牆（pfSense）只負責攔截，監控系統（Wazuh）只負責記錄。本實作的目的是將兩者串聯：讓 pfSense 偵測到威脅後，Wazuh 能即時分析並下達指令，讓防火牆從「被動紀錄」轉為「主動執行阻擋」。
 
----
+## 2. 系統環境與規格
+*   **防火牆端 (pfSense)**：
+    *   版本：2.8.1-RELEASE (FreeBSD 15.0)
+    *   硬體：AMD Ryzen 7 4800H (VirtualBox 虛擬機)
+    *   網路：WAN 10.0.2.15 / 管理介面 192.168.56.10
+*   **Wazuh**：
+    *   版本：4.9.2 (Docker 部署)
 
-## 2. 系統環境與規格 (Environment Specifications)
-根據實體截圖與實作紀錄，詳細參數如下：
-*   **邊界防護節點 (Sensor & Executor)**：
-    *   **OS**: pfSense **2.8.1-RELEASE** (基於 FreeBSD 15.0-CURRENT)
-    *   **CPU**: AMD Ryzen 7 4800H (VirtualBox 虛擬化平台)
-    *   **IP**: WAN `10.0.2.15` / Management `192.168.56.10`
-*   **資安指揮大腦 (Command Center)**：
-    *   **SIEM**: Wazuh Manager 4.9.2 (全容器化 Docker 部署)
-    *   **AI 介面**: Claude 3.5 / MCP Server (Model Context Protocol)
+## 3. 核心技術實作
 
----
+### 3.1 安裝 Agent 到 pfSense
+由於版本相容性限制，本實作採用手動安裝：
+1.  下載針對 FreeBSD 系統優化的 `wazuh-agent.pkg` 安裝包。
+2.  透過 pfSense 網頁介面上傳至 `/tmp` 目錄。
+3.  使用 `pkg add` 指令完成本機部署，確保資料採集引擎正常運作。
 
-## 3. 核心技術實現路徑 (Technical Roadmap)
+### 3.2 收集防火牆日誌
+設定 Wazuh Agent 持續監控 pfSense 的防火牆日誌檔案 `/var/log/filter.log`。當防火牆攔截到任何連線時，Agent 會即時將來源 IP 與目標埠號送回 Wazuh 進行結構化分析。
 
-### 3.1 跨架構 Agent 部署挑戰
-由於 pfSense 與官方套件庫的連通限制，本實作採用了**手動載入與本機編譯技術**：
-1.  **套件獲取**：在主機端下載針對 FreeBSD 14/15 特製的 `wazuh-agent.pkg`。
-2.  **Web 介面中繼**：透過 pfSense `Diagnostics -> Command Prompt` 將套件上傳至 `/tmp`，規避了 `fetch/curl` 的權限攔截。
-3.  **本機安裝**：執行 `pkg add` 指令，解決了動態連結庫與依賴項的衝突問題。
+### 3.3 實作自動阻擋機制 (Active Response)
+建立「偵測 $\rightarrow$ 判斷 $\rightarrow$ 執行」的自動化流程：
+1.  **判斷規則**：設定當單一 IP 在 30 秒內被攔截超過 10 次，Wazuh 即判定為惡意掃描。
+2.  **執行阻擋**：Wazuh 下令給 pfSense 執行 `pfctl` 指令。
+3.  **阻斷成果**：將惡意 IP 加入防火牆黑名單清單，達成秒級的自動化防禦。
 
-### 3.2 結構化數據採集與日誌流轉 (Log Pipeline)
-實作了高效能的日誌監控配置，確保邊界流量「秒級」上報：
-*   **監控對象**：pfSense 核心二進位日誌 `/var/log/filter.log`。
-*   **數據優化**：透過 Wazuh Agent 的 `localfile` 模組，將防火牆攔截紀錄即時格式化，提取 `srcip` (攻擊來源)、`dstport` (目標漏洞點) 與 `action` (攔截動作)。
+## 4. 成果展示
 
-### 3.3 自動化聯動回應機制 (SOAR Implementation)
-這是本專案最核心的技術價值，實現了 **「感知即阻斷」**：
-1.  **關聯偵測**：在 Wazuh Manager 配置 `rules_id 100011`。若單一 IP 在 30 秒內觸發 pfSense Drop 告警超過 10 次，立即判定為「惡意掃描」。
-2.  **指令下達**：Manager 下令給 pfSense Agent 執行 `firewall-drop.sh` 腳本。
-3.  **低底層執行**：調用 FreeBSD 核心工具 **`pfctl`**，將惡意 IP 動態寫入 pfSense 黑名單 Alias 表。
-    *   **關鍵指令**：`/sbin/pfctl -t wazuh_block -T add <Attacker_IP>`
-    *   **成果**：阻斷延遲從分鐘級降至 **< 1 秒**。
-
----
-
-## 4. 功能成果展示 (Demonstration)
-
-### 4.1 pfSense 管理與運作實錄
+### 4.1 pfSense 運行狀態
 <img width="100%" alt="pfSense Dashboard" src="https://github.com/user-attachments/assets/c16c9be4-eea5-46b6-8945-20428103603d" />
-*描述：展示了成功連線並在線監控中的 pfSense 2.8.1 環境。*
+*描述：pfSense 虛擬機環境架設完成，管理介面運行正常。*
 
-### 4.2 Wazuh SIEM 實時監控與告警證明
-下圖為 Wazuh Dashboard 的監控畫面，證明 pfSense 數據已成功接入並觸發 Level 12 告警：
+### 4.2 Wazuh 偵測告警紀錄
 <img width="1191" height="591" alt="螢幕擷取畫面 2026-01-10 011145" src="https://github.com/user-attachments/assets/13e6dec7-d6ec-4d15-abf6-c27c806620f4" />
+*描述：Wazuh 成功識別 pfSense 設備，並在偵測到多次攻擊後觸發 Level 12 嚴重告警。*
 
----
+## 5. 關鍵代碼與設定
 
-## 5. 關鍵代碼與配置證明 (Evidence of Work)
-
-### 【配置 A】pfSense 端 Agent 設定 (`ossec.conf`)
+### 【設定檔】pfSense Agent 配置 (`ossec.conf`)
 ```xml
 <localfile>
   <log_format>syslog</log_format>
   <location>/var/log/filter.log</location>
 </localfile>
-<active-response>
-  <disabled>no</disabled> <!-- 開啟由 AI/Manager 驅動的阻擋權限 -->
-</active-response>
 ```
 
-### 【腳本 B】自動化阻擋執行件 (`firewall-drop.sh`)
+### 【腳本】pfSense 阻擋指令 (`firewall-drop.sh`)
 ```bash
 #!/bin/sh
-# pfSense 專用阻擋腳本
+# 聯動 pfSense 核心工具進行阻擋
 if [ "$1" = "add" ]; then
     /sbin/pfctl -t wazuh_block -T add $3
-    echo "$(date): AI Agent Executed Blocking Command on $3" >> /var/ossec/logs/active-responses.log
 fi
 ```
 
----
-
-## 6. 實作價值總結 (Value Summary)
-1.  **防禦主動化**：成功將防火牆從「紀錄工具」升級為「智能防禦端點」。
-2.  **多平台兼容**：克服了 Linux 與 FreeBSD 之間的通訊障礙。
-3.  **維運現代化**：結合 AI Agent，極大降低了對防火牆日誌解析的專業門檻，實現了高效、精準的威脅狩獵。
+## 6. 總結
+1.  **防禦自動化**：成功讓防火牆具備主動反擊能力。
+2.  **實踐價值**：模擬了真實企業環境中的邊界防護與中心監控連動流程。
