@@ -50,12 +50,6 @@
 下圖為 Wazuh Dashboard 的監控畫面，證明 pfSense 數據已成功接入並觸發 Level 12 告警：
 <img width="1191" height="591" alt="螢幕擷取畫面 2026-01-10 011145" src="https://github.com/user-attachments/assets/13e6dec7-d6ec-4d15-abf6-c27c806620f4" />
 
-
-### 4.3 對話式威脅狩獵 (AI-Powered SecOps)
-利用第一題實作的 **MCP Server**，資安分析師可透過 **Chat** 直接與邊界設備互動：
-*   **Q**: 「幫我分析 pfSense 最近的連線狀況。」
-*   **AI (Claude)**: 「目前 pfSense Agent 連線正常。偵測到 IP `45.x.x.x` 正在對網段進行 TCP 掃描。Wazuh 已根據預設規則觸發 Active Response，成功聯動 `pfctl` 將該來源阻擋。目前受影響主機（AMD Ryzen 7 平台）負載正常。」
-
 ---
 
 ## 5. 關鍵代碼與配置證明 (Evidence of Work)
