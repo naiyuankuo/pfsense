@@ -1,6 +1,6 @@
 # 實作報告：pfSense 與 Wazuh 之邊界聯防與 AI 自動化回應系統
 
-## 1. 專案背景與願景 (Project Vision)
+## 1. 專案背景
 傳統的資安防護中，防火牆（如 pfSense）負責攔截，而 SIEM（如 Wazuh）負責記錄，兩者之間往往缺乏即時聯動。本實作成功打破資訊孤島，構建了一套 **「邊界感知 (Perception) -> 中心決策 (Decision) -> 全域響應 (Response)」** 的閉環體系。透過部署 Wazuh Agent 於 pfSense 核心，實現了從「被動防禦」向「主動反擊」的轉型。
 
 ---
