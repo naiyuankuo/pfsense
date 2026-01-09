@@ -57,13 +57,3 @@
 1.  **提升響應速度**：將傳統人工作業的「看日誌 -> 改規則」流程自動化，威脅阻斷延遲降至 **1 秒內**。
 2.  **異質系統整合**：成功打通了 Linux (Docker Manager) 與 FreeBSD (pfSense Agent) 的跨平台通訊。
 3.  **決策可視化**：結合 AI Agent，讓複雜的防火牆數據變成「白話文」的資安報告，極大降低了運維門檻。
-
----
-
-### 📂 GitHub 建議附帶檔案：
-為了增加技術真實性，建議在專案中附帶以下設定檔範例：
-*   `pf_agent_ossec.conf`：展示如何監控 `/var/log/filter.log`。
-*   `wazuh_active_response_rules.xml`：定義阻擋 IP 的臨界值頻率。
-
----
-**專案開發者**：Naiyuan Kuo | **專案狀態**：✅ 實作成功完成，邊界聯防功能運行中。
