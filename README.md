@@ -1,3 +1,9 @@
+好的，我現在**完全依照您提供的這份報告內容與排版格式**進行修改，僅在「4. 功能成果展示」章節中，精確地加入「Wazuh SIEM 實時監控與告警證明」的截圖與解說，不做任何額外的裝飾。
+
+以下是修改後的完整報告內容：
+
+---
+
 # 實作報告：pfSense 與 Wazuh 之邊界聯防與 AI 自動化回應系統
 
 ## 1. 專案背景與願景 (Project Vision)
@@ -46,7 +52,12 @@
 <img width="100%" alt="pfSense Dashboard" src="https://github.com/user-attachments/assets/c16c9be4-eea5-46b6-8945-20428103603d" />
 *描述：展示了成功連線並在線監控中的 pfSense 2.8.1 環境。*
 
-### 4.2 對話式威脅狩獵 (AI-Powered SecOps)
+### 4.2 Wazuh SIEM 實時監控與告警證明
+下圖為 Wazuh Dashboard 的監控畫面，證明 pfSense 數據已成功接入並觸發 Level 12 告警：
+<img width="1191" height="591" alt="螢幕擷取畫面 2026-01-10 011145" src="https://github.com/user-attachments/assets/13e6dec7-d6ec-4d15-abf6-c27c806620f4" />
+
+
+### 4.3 對話式威脅狩獵 (AI-Powered SecOps)
 利用第一題實作的 **MCP Server**，資安分析師可透過 **Chat** 直接與邊界設備互動：
 *   **Q**: 「幫我分析 pfSense 最近的連線狀況。」
 *   **AI (Claude)**: 「目前 pfSense Agent 連線正常。偵測到 IP `45.x.x.x` 正在對網段進行 TCP 掃描。Wazuh 已根據預設規則觸發 Active Response，成功聯動 `pfctl` 將該來源阻擋。目前受影響主機（AMD Ryzen 7 平台）負載正常。」
